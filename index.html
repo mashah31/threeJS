@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <title>WebGL 3D Model Viewer</title>
+
+    <script src="js/three.js"></script>
+    <script src="js/Detector.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script src="js/OBJLoader.js"></script>
+    
+    <style>
+        body {
+            margin: 0; padding: 0;
+            background: #a9a9a9;
+        }
+    </style>
+
+</head>
+<body>
+    <script>
+        
+        /*  Detect if webGL is enabled or not? */
+        
+        if (!Detector.webgl) {
+            Detector.addGetWebGLMessage();
+        }
+
+        var divContainer, manager;
+        var camera, controls, scene, renderer;
+        var lighting, ambient, keyLight;
+        
+        init();
+        animate();
+
+        function init() {
+
+            divContainer = document.createElement('div');
+            document.body.appendChild(divContainer);
+
+            /* Scene */
+            scene = new THREE.Scene();
+            
+            /* Camera */
+            camera = new THREE.PerspectiveCamera(
+                25,                                         // Field of view
+                window.innerWidth / window.innerHeight,     // Aspect ratio
+                1,                                          // Nearest position
+                1000);                                      // Farthest position
+            camera.position.set(3, 3, -3);                  // X,Y,Z axis
+            camera.lookAt(scene.position);
+
+            /* Light */
+            lighting = false;
+
+            ambient = new THREE.AmbientLight(0x404040);
+            scene.add(ambient);
+
+            keyLight = new THREE.DirectionalLight(0xffffff);
+            keyLight.position.set(6, 6, -6).normalize();
+            scene.add(keyLight);
+
+            /* Loading Manager */
+
+            manager = new THREE.LoadingManager();
+            manager.onProgress = function ( item, loaded, total ) {
+                console.log("loading", item, loaded, total );
+            };
+            manager.onLoad = function () {
+                console.log('all items loaded');
+            };
+            manager.onError = function () {
+                console.log('there has been an error');
+            };
+
+            /* Object Loader */
+
+            var loader = new THREE.ObjectLoader(manager);
+                loader.load("assets/sectional.js", function (geometry) {
+                scene.add(geometry);
+            });
+
+            /* Renderer */
+
+            renderer = new THREE.WebGLRenderer();
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0xa9a9a9);
+
+            divContainer.appendChild(renderer.domElement);
+
+            /* Controls */
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableZoom = true;
+
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.25;
+
+            /* Events */
+            
+            window.addEventListener('resize', onWindowResize, false);
+            window.addEventListener('keydown', onKeyboardEvent, false);
+            controls.addEventListener( 'change', render );
+        }
+
+        function onWindowResize() {
+
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+        }
+
+        function onKeyboardEvent(e) {
+            if (e.code === 'KeyL') {
+                lighting = !lighting;
+                if (lighting) {
+                    ambient.intensity = 0.25;
+                    scene.add(keyLight);
+                    scene.add(fillLight);
+                    scene.add(backLight);
+                } else {
+                    ambient.intensity = 1.0;
+                    scene.remove(keyLight);
+                    scene.remove(fillLight);
+                    scene.remove(backLight);
+                }
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            render();
+        }
+
+        function render() {
+            renderer.render(scene, camera);
+        }
+    </script>
+
+</body>
+</html>
